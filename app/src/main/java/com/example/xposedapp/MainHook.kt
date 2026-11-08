@@ -22,7 +22,8 @@ class MainHook : IXposedHookLoadPackage {
             loadClassOrNull("Knife.PostProcessing.OutlineRenderer")?.let { outlineClass ->
                 Log.i(TAG, "Found OutlineRenderer class successfully!")
                 
-                outlineClass.hookBefore("Render", "UnityEngine.Rendering.PostProcessing.PostProcessRenderContext") { param ->
+                // Безопасный хук метода по имени без перегрузки параметров
+                outlineClass.hookAllMethods("Render") { param ->
                     Log.d(TAG, "Hooked OutlineRenderer.Render method")
                 }
             }
