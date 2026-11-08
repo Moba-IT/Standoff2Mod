@@ -1,9 +1,9 @@
 package com.example.xposedapp
 
 import android.util.Log
-import com.github.kyuubiran.ezxhelper.init.EzXHelperInit
-import com.github.kyuubiran.ezxhelper.utils.*
 import de.robv.android.xposed.IXposedHookLoadPackage
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 class MainHook : IXposedHookLoadPackage {
@@ -15,17 +15,22 @@ class MainHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName != TARGET_PACKAGE) return
 
-        EzXHelperInit.initAllHooks(lpparam)
         Log.i(TAG, "Target package loaded: ${lpparam.packageName}")
 
         try {
-            loadClassOrNull("Knife.PostProcessing.OutlineRenderer")?.let { outlineClass ->
+            // Используем стандартный поиск класса через класс-лоадер приложения
+            val outlineClass = XposedHelpers.findClassIfExists("Knife.PostProcessing.OutlineRenderer", lpparam.classLoader)
+            
+            if (outlineClass != null) {
                 Log.i(TAG, "Found OutlineRenderer class successfully!")
                 
-                // Безопасный хук метода по имени без перегрузки параметров
-                outlineClass.hookAllMethods("Render") { param ->
-                    Log.d(TAG, "Hooked OutlineRenderer.Render method")
-                }
+                XposedHelpers.findAndHookMethod(outlineClass, "Render", object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        Log.d(TAG, "Hooked OutlineRenderer.Render method")
+                    }
+                })
+            } else {
+                Log.i(TAG, "OutlineRenderer class not found yet.")
             }
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to apply hooks", e)
